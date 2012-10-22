@@ -9,11 +9,11 @@ Attack Vector exploited: HTTP Keep Alive + NoCache
 
 Usage
 -----------------------------------------------------------------------------------------------------------
- USAGE: ./goldeneye.py <url> [OPTIONS]
-
- OPTIONS:
-     Flag           Description                     Default
-     -t, --threads      Number of concurrent threads                (default: 500)
-     -m, --method       HTTP Method to use 'get' or 'post'  or 'random'         (default: get)
-     -d, --debug        Enable Debug Mode [more verbose output]         (default: False)
-     -h, --help     Shows this help
+     USAGE: ./goldeneye.py <url> [OPTIONS]
+    
+     OPTIONS:
+         Flag           Description                     Default
+         -t, --threads      Number of concurrent threads                (default: 500)
+         -m, --method       HTTP Method to use 'get' or 'post'  or 'random'         (default: get)
+         -d, --debug        Enable Debug Mode [more verbose output]         (default: False)
+         -h, --help     Shows this help
