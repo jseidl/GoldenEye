@@ -25,7 +25,7 @@ and any malicious usage of this tool is prohibited.
 
 @author Jan Seidl <http://wroot.org/>
 
-@date 2012-12-09
+@date 2013-03-26
 @version 2.0
 
 @TODO Test in python 3.x
