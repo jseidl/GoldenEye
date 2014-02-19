@@ -390,8 +390,7 @@ class Laser(Process):
         roundEncodings = acceptEncoding[:nrEncodings]
 
         http_headers = {
-#            'User-Agent': random.choice(self.useragents),
-            'User-Agent': 'ETCA-47',
+            'User-Agent': random.choice(self.useragents),
             'Cache-Control': noCache,
             'Accept-Encoding': ', '.join(roundEncodings),
             'Connection': 'keep-alive',
