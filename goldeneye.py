@@ -147,7 +147,7 @@ class GoldenEye(object):
         try:
             if self.counter[0] > 0 or self.counter[1] > 0:
 
-                print "{0} GoldenEye punches deferred. ({1} Failed)".format(self.counter[0], self.counter[1])
+                print "{0} GoldenEye strikes deferred. ({1} Failed)".format(self.counter[0], self.counter[1])
 
                 if self.counter[0] > 0 and self.counter[1] > 0 and self.last_counter[0] == self.counter[0] and self.counter[1] > self.last_counter[1]:
                     print "\tServer may be DOWN!"
@@ -390,7 +390,8 @@ class Laser(Process):
         roundEncodings = acceptEncoding[:nrEncodings]
 
         http_headers = {
-            'User-Agent': random.choice(self.useragents),
+#            'User-Agent': random.choice(self.useragents),
+            'User-Agent': 'ETCA-47',
             'Cache-Control': noCache,
             'Accept-Encoding': ', '.join(roundEncodings),
             'Connection': 'keep-alive',
