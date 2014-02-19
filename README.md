@@ -19,8 +19,14 @@ Usage
          -h, --help     Shows this help
 
 
+Utilities
+-------------------------------------------------------------------------------------------------------------
+* util/getuas.py - Fetchs user-agent lists from http://www.useragentstring.com/pages/useragentstring.php subpages (ex: ./getuas.py http://www.useragentstring.com/pages/Browserlist/) *REQUIRES BEAUTIFULSOUP4*
+* res/lists/useragents - Text lists (one per line) of User-Agent strings (from http://www.useragentstring.com)
+
 Changelog
 -----------------------------------------------------------------------------
+2014-02-19  Removed silly referers and user agents. Improved randomness of referers. Added external user-agent list support.
 2013-03-26  Changed from threading to multiprocessing. Still has some bugs to resolve like I still don't know how to propperly shutdown the manager.
 2012-12-09  Initial release
 
