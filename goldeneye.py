@@ -68,8 +68,10 @@ METHOD_RAND = 'random'
 
 JOIN_TIMEOUT=1.0
 
-DEFAULT_WORKERS=50
-DEFAULT_SOCKETS=30
+DEFAULT_WORKERS=10
+DEFAULT_SOCKETS=500
+
+GOLDENEYE_BANNER = 'GoldenEye v2.1 by Jan Seidl <jseidl@wroot.org>'
 
 ####
 # GoldenEye Class
@@ -105,6 +107,7 @@ class GoldenEye(object):
         # Initialize Counters
         self.counter = self.manager.list((0, 0))
 
+
     def exit(self):
         self.stats()
         print "Shutting down GoldenEye"
@@ -115,13 +118,15 @@ class GoldenEye(object):
     def printHeader(self):
 
         # Taunt!
-        print "GoldenEye firing!"
+        print
+        print GOLDENEYE_BANNER
+        print
 
     # Do the fun!
     def fire(self):
 
         self.printHeader()
-        print "Hitting webserver in mode {0} with {1} workers running {2} connections each".format(self.method, self.nr_workers, self.nr_sockets)
+        print "Hitting webserver in mode '{0}' with {1} workers running {2} connections each. Hit CTRL+C to cancel.".format(self.method, self.nr_workers, self.nr_sockets)
 
         if DEBUG:
             print "Starting {0} concurrent Laser workers".format(self.nr_workers)
@@ -141,8 +146,8 @@ class GoldenEye(object):
                 error("Failed to start worker {0}".format(i))
                 pass 
 
-        print "%d User-Agent Strings loaded" % len(self.useragents)
-        print "Initiating monitor"
+        if DEBUG:
+            print "Initiating monitor"
         self.monitor()
 
     def stats(self):
@@ -449,16 +454,20 @@ class Laser(Process):
 def usage():
     print
     print '-----------------------------------------------------------------------------------------------------------'
+    print
+    print GOLDENEYE_BANNER
+    print 
     print ' USAGE: ./goldeneye.py <url> [OPTIONS]'
     print
     print ' OPTIONS:'
     print '\t Flag\t\t\tDescription\t\t\t\t\t\tDefault'
-    print '\t -u, --useragents\t\tFile with user-agents to use\t\t\t\t(default: random from res/lists/useragents)'
+    print '\t -u, --useragents\tFile with user-agents to use\t\t\t\t(default: random from res/lists/useragents)'
     print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
     print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
     print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
     print '\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)'
     print '\t -h, --help\t\tShows this help'
+    print
     print '-----------------------------------------------------------------------------------------------------------'
 
     
