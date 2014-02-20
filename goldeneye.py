@@ -165,14 +165,14 @@ class GoldenEye(object):
         print "Hitting webserver in mode '{0}' with {1} workers running {2} connections each. Hit CTRL+C to cancel.".format(self.method, self.nr_workers, self.nr_sockets)
 
         if DEBUG:
-            print "Starting {0} concurrent Laser workers".format(self.nr_workers)
+            print "Starting {0} concurrent workers".format(self.nr_workers)
 
         # Start workers
         for i in range(int(self.nr_workers)):
 
             try:
 
-                worker = Laser(self.url, self.nr_sockets, self.counter)
+                worker = Striker(self.url, self.nr_sockets, self.counter)
                 worker.useragents = self.useragents
                 worker.method = self.method
 
@@ -228,10 +228,10 @@ class GoldenEye(object):
                     pass
 
 ####
-# Laser Class
+# Striker Class
 ####
 
-class Laser(Process):
+class Striker(Process):
 
         
     # Counters
@@ -257,7 +257,7 @@ class Laser(Process):
 
     def __init__(self, url, nr_sockets, counter):
 
-        super(Laser, self).__init__()
+        super(Striker, self).__init__()
 
         self.counter = counter
         self.nr_socks = nr_sockets
