@@ -167,8 +167,6 @@ class GoldenEye(object):
         if DEBUG:
             print "Starting {0} concurrent workers".format(self.nr_workers)
 
-        self.pool = 
-
         # Start workers
         for i in range(int(self.nr_workers)):
 
