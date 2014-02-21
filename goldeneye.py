@@ -40,7 +40,7 @@ THE AUTHOR DOES NOT TAKE ANY RESPONSIBILITY FOR IT.
 BY USING THIS SOFTWARE YOU AGREE WITH THESE TERMS.
 """
 
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, Pool
 import urlparse, ssl
 import sys, getopt, random, time, os
 
@@ -166,6 +166,8 @@ class GoldenEye(object):
 
         if DEBUG:
             print "Starting {0} concurrent workers".format(self.nr_workers)
+
+        self.pool = 
 
         # Start workers
         for i in range(int(self.nr_workers)):

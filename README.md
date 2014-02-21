@@ -12,12 +12,12 @@ Attack Vector exploited: HTTP Keep Alive + NoCache
     
      OPTIONS:
         Flag           Description                     Default
-        -u, --useragents       File with user-agents to use                (default: random from res/lists/useragents)
-        -w, --workers      Number of concurrent workers                (default: 50)
-        -s, --sockets      Number of concurrent sockets                (default: 30)
-        -m, --method       HTTP Method to use 'get' or 'post'  or 'random'     (default: get)
-        -d, --debug        Enable Debug Mode [more verbose output]         (default: False)
-        -h, --help     Shows this help
+        -u, --useragents   File with user-agents to use                     (default: randomly generated)
+        -w, --workers      Number of concurrent workers                     (default: 50)
+        -s, --sockets      Number of concurrent sockets                     (default: 30)
+        -m, --method       HTTP Method to use 'get' or 'post'  or 'random'  (default: get)
+        -d, --debug        Enable Debug Mode [more verbose output]          (default: False)
+        -h, --help         Shows this help
 
 
 ## Utilities
