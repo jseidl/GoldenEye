@@ -58,6 +58,11 @@ JOIN_TIMEOUT=1.0
 DEFAULT_WORKERS=10
 DEFAULT_SOCKETS=500
 
+# allows connection to Tor network
+import socks, socket
+socks.set_default_proxy(socks.SOCKS5,"127.0.0.1", 9150)
+socket.socket = socks.socksocket
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--website', '-t', help='Website to stress test')
 parser.add_argument('--useragents', '-u', help='File with user-agents to use')
