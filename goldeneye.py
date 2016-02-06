@@ -58,6 +58,7 @@ else:
 # Config
 ####
 DEBUG = False
+SSLVERIFY = True
 
 ####
 # Constants
@@ -317,8 +318,11 @@ class Striker(Process):
 
                 for i in range(self.nr_socks):
                 
-                    if self.ssl:
-                        c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
+                    if self.ssl:                    
+                        if SSLVERIFY:
+                            c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
+                        else:
+                            c = HTTPCLIENT.HTTPSConnection(self.host, self.port, context=ssl._create_unverified_context())                                                  
                     else:
                         c = HTTPCLIENT.HTTPConnection(self.host, self.port)
 
@@ -551,6 +555,7 @@ def usage():
     print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
     print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
     print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
+    print '\t -n, --nosslcheck\tDo not verify SSL Certificate\t\t\t\t(default: True)'
     print '\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)'
     print '\t -h, --help\t\tShows this help'
     print
@@ -586,7 +591,7 @@ def main():
         if url == None:
             error("No URL supplied")
 
-        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:u:", ["debug", "help", "workers", "sockets", "method", "useragents" ])
+        opts, args = getopt.getopt(sys.argv[2:], "ndhw:s:m:u:", ["sslcheck", "debug", "help", "workers", "sockets", "method", "useragents" ])
 
         workers = DEFAULT_WORKERS
         socks = DEFAULT_SOCKETS
@@ -608,6 +613,9 @@ def main():
             elif o in ("-d", "--debug"):
                 global DEBUG
                 DEBUG = True
+            elif o in ("-n", "--nosslcheck"):
+                global SSLVERIFY
+                SSLVERIFY = False
             elif o in ("-m", "--method"):
                 if a in (METHOD_GET, METHOD_POST, METHOD_RAND):
                     method = a
