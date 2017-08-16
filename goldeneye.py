@@ -591,7 +591,7 @@ def main():
         if url == None:
             error("No URL supplied")
 
-        opts, args = getopt.getopt(sys.argv[2:], "ndhw:s:m:u:", ["sslcheck", "debug", "help", "workers", "sockets", "method", "useragents" ])
+        opts, args = getopt.getopt(sys.argv[2:], "ndhw:s:m:u:", ["nosslcheck", "debug", "help", "workers", "sockets", "method", "useragents" ])
 
         workers = DEFAULT_WORKERS
         socks = DEFAULT_SOCKETS
