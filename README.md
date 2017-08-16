@@ -17,6 +17,7 @@ Attack Vector exploited: HTTP Keep Alive + NoCache
         -s, --sockets      Number of concurrent sockets                     (default: 30)
         -m, --method       HTTP Method to use 'get' or 'post'  or 'random'  (default: get)
         -d, --debug        Enable Debug Mode [more verbose output]          (default: False)
+        -n, --nosslcheck   Do not verify SSL Certificate                    (default: True)
         -h, --help         Shows this help
 
 
@@ -25,6 +26,7 @@ Attack Vector exploited: HTTP Keep Alive + NoCache
 * res/lists/useragents - Text lists (one per line) of User-Agent strings (from http://www.useragentstring.com)
 
 ## Changelog
+* 2016-02-06  Added support for not verifying SSL Certificates
 * 2014-02-20  Added randomly created user agents (still RFC compliant). 
 * 2014-02-19  Removed silly referers and user agents. Improved randomness of referers. Added external user-agent list support.
 * 2013-03-26  Changed from threading to multiprocessing. Still has some bugs to resolve like I still don't know how to propperly shutdown the manager.
