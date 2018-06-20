@@ -192,7 +192,7 @@ class GoldenEye(object):
         try:
             if self.counter[0] > 0 or self.counter[1] > 0:
 
-                print "{0} GoldenEye strikes deferred. ({1} Failed)".format(self.counter[0], self.counter[1])
+                print "{0} GoldenEye strikes hit. ({1} Failed)".format(self.counter[0], self.counter[1])
 
                 if self.counter[0] > 0 and self.counter[1] > 0 and self.last_counter[0] == self.counter[0] and self.counter[1] > self.last_counter[1]:
                     print "\tServer may be DOWN!"
