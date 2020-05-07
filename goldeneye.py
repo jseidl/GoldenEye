@@ -462,7 +462,7 @@ class Striker(Process):
         # Random accept encoding
         acceptEncoding = ['\'\'','*','identity','gzip','deflate']
         random.shuffle(acceptEncoding)
-        nrEncodings = random.randint(1,len(acceptEncoding)/2)
+        nrEncodings = random.randint(1,int(len(acceptEncoding)/2))
         roundEncodings = acceptEncoding[:nrEncodings]
 
         http_headers = {
