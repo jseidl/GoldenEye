@@ -1,8 +1,8 @@
 # GoldenEye
 
-GoldenEye is an python3 app for SECURITY TESTING PURPOSES ONLY!
+GoldenEye is a Python 3 app for SECURITY TESTING PURPOSES ONLY!
 
-GoldenEye is a HTTP DoS Test Tool.
+GoldenEye is an HTTP DoS Test Tool.
 
 Attack Vector exploited: HTTP Keep Alive + NoCache
 
@@ -22,7 +22,7 @@ Attack Vector exploited: HTTP Keep Alive + NoCache
 
 
 ## Utilities
-* util/getuas.py - Fetchs user-agent lists from http://www.useragentstring.com/pages/useragentstring.php subpages (ex: ./getuas.py "http://www.useragentstring.com/pages/useragentstring.php?name=All") *REQUIRES BEAUTIFULSOUP4*
+* util/getuas.py - Fetches user-agent lists from http://www.useragentstring.com/pages/useragentstring.php subpages (ex: ./getuas.py "http://www.useragentstring.com/pages/useragentstring.php?name=All") *REQUIRES BEAUTIFULSOUP4*
 * res/lists/useragents - Text lists (one per line) of User-Agent strings (from http://www.useragentstring.com)
 
 ## Changelog
