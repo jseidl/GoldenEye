@@ -1,3 +1,5 @@
+# THIS PROJECT IS NO LONGER MAINTAINED
+
 # GoldenEye
 
 GoldenEye is a Python 3 app for SECURITY TESTING PURPOSES ONLY!
